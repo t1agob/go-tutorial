@@ -1,0 +1,19 @@
+# Local-only planning docs (never committed)
+docs/superpowers/
+.superpowers/
+
+# Build output
+/todo-api
+/bin/
+
+# SQLite databases (stage 7)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Test output
+coverage.out
+
+# OS
+.DS_Store
