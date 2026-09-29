@@ -356,6 +356,7 @@ A `todo.db` file now exists in the repo root, and `.gitignore` already excludes 
 ```sh
 STORAGE=postgres go run ./cmd/todo-api
 # error: STORAGE: must be memory or sqlite, got "postgres"
+# exit status 1
 ```
 
 - [ ] One contract suite runs against both adapters, and both pass with `-race`.

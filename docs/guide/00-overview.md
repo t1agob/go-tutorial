@@ -80,6 +80,7 @@ go-test/
 │   ├── todo/                   # CORE — standard library only
 │   │   ├── todo.go             #   entity + rules          (stage 2)
 │   │   ├── ports.go            #   Repository interface    (stage 3)
+│   │   ├── id.go               #   ID generator            (stage 3)
 │   │   └── service.go          #   use cases               (stage 3)
 │   ├── adapters/
 │   │   ├── memory/             #   in-memory Repository    (stage 3)

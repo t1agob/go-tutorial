@@ -186,7 +186,7 @@ Record `start := time.Now()`, call `next.ServeHTTP(...)` with your wrapped write
 
 <details><summary>Hint 2</summary>
 
-`type statusRecorder struct { http.ResponseWriter; status int }`, with a `WriteHeader(code int)` method that saves `code` and then calls the embedded `WriteHeader`. Pass `&statusRecorder{ResponseWriter: w, status: http.StatusOK}` to `next`.
+`type statusRecorder struct { http.ResponseWriter; status int }`, with a `WriteHeader(code int)` method that saves `code` and then calls the embedded `WriteHeader`. Pass `&statusRecorder{ResponseWriter: w}` to `next`.
 
 </details>
 
@@ -194,7 +194,9 @@ Record `start := time.Now()`, call `next.ServeHTTP(...)` with your wrapped write
 
 **Test:** an inner handler that only calls `w.Write([]byte("ok"))`, with no `WriteHeader`. The logged `status` must be `200`.
 
-If you initialised the recorder's status to 0, this goes red, which is exactly why this test exists.
+If your recorder starts with its status at 0 (the zero value, as in Hint 2), this goes red and logs `status=0`, which is exactly why this test exists. Fix it by starting the recorder at `http.StatusOK`.
+
+If you already started it at 200 and the test passes straight away, make sure the test really checks this: temporarily start the recorder at 0, watch the test fail, then put 200 back.
 
 ### Step 4 — Log the real error behind a 500 (red → green)
 

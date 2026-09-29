@@ -56,23 +56,28 @@ err := lvl.UnmarshalText([]byte("debug"))   // also accepts "INFO", "warn", "ERR
 
 A `main` that does everything is hard to test: it calls `os.Exit`, reads real environment variables, and writes to the real stdout. Instead:
 
+Here's the idea in a small command-line tool that counts the lines in some files:
+
 ```go
 func main() {
-    ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-    defer stop()
-
-    if err := run(ctx, os.Getenv, os.Stdout); err != nil {
+    if err := run(os.Args[1:], os.Stdout); err != nil {
         fmt.Fprintln(os.Stderr, "error:", err)
         os.Exit(1)
     }
 }
 
-func run(ctx context.Context, getenv func(string) string, stdout io.Writer) error {
-    // everything else
+func run(args []string, stdout io.Writer) error {
+    if len(args) == 0 {
+        return errors.New("usage: linecount FILE...")
+    }
+    // … open each file, count its lines, fmt.Fprintf(stdout, ...) …
+    return nil
 }
 ```
 
-`main` is now three lines of glue. `run` takes all its dependencies as parameters and **returns an error instead of exiting**, so a test can call it.
+A test can call `run([]string{"testdata/a.txt"}, &buf)` and check both the error and the output.
+
+For the server, `run` takes whatever `main` would otherwise get from the process: a context (for shutdown, see below), a `getenv` function, and a writer for logs. `main` shrinks to a few lines of glue. `run` takes all its dependencies as parameters and **returns an error instead of exiting**, so a test can call it.
 
 ### Signals and `signal.NotifyContext`
 
@@ -99,21 +104,21 @@ srv := &http.Server{
 - `srv.ListenAndServe()` **blocks** until the server stops. When it's stopped by `Shutdown`, it returns `http.ErrServerClosed`, which is the *normal* result and not a failure.
 - `srv.Shutdown(ctx)` stops accepting new connections, **waits for in-flight requests to finish**, then returns. If `ctx` expires first, it gives up and returns the context's error.
 
-Because `ListenAndServe` blocks, run it in a **goroutine**, and use a **channel** to get its result back:
+Because `ListenAndServe` blocks, run it in a **goroutine**, and use a **channel** to get its result back. Here's the same pattern with a slow download, where the caller can give up early:
 
 ```go
-errCh := make(chan error, 1)        // buffered: the goroutine can send even if nobody is receiving yet
-go func() { errCh <- srv.ListenAndServe() }()
+resultCh := make(chan error, 1)     // buffered: the goroutine can send even if nobody is receiving any more
+go func() { resultCh <- download(url) }()
 
 select {
-case err := <-errCh:                // server failed to start, e.g. port already in use
+case err := <-resultCh:             // the download finished (or failed) first
     return err
-case <-ctx.Done():                  // a signal arrived
+case <-ctx.Done():                  // the caller gave up first
+    return ctx.Err()
 }
-// … now call Shutdown with a deadline, then read errCh
 ```
 
-`select` waits on several channel operations and runs whichever is ready first.
+`select` waits on several channel operations and runs whichever is ready first. For the server, the goroutine runs `ListenAndServe`, and the `ctx.Done()` branch is where shutdown begins. Unlike the download, you don't return straight away there: you call `Shutdown`, then read the goroutine's result from the channel.
 
 > **Shutdown deadline:** use a *fresh* context for `Shutdown`, such as `context.WithTimeout(context.Background(), 10*time.Second)`, not the already-cancelled signal context. Otherwise `Shutdown` gives up straight away.
 
@@ -141,14 +146,21 @@ Rules:
 
 You could add `"request_id", RequestIDFrom(ctx)` to every log call, but it's easy to forget. Remember the `...Context` variants from stage 5 (`log.InfoContext(ctx, ...)`)? A `slog.Handler` receives that `ctx`. So you can **wrap** the handler with one that adds the request ID automatically:
 
-```go
-type contextHandler struct{ slog.Handler }   // embed: pass everything through
+Here's the shape, using an unrelated example: a wrapper that adds the build version to every record.
 
-func (h contextHandler) Handle(ctx context.Context, r slog.Record) error {
-    // look something up in ctx; if present: r.AddAttrs(slog.String("key", value))
+```go
+type versionHandler struct {
+    slog.Handler            // embed: pass everything through
+    version string
+}
+
+func (h versionHandler) Handle(ctx context.Context, r slog.Record) error {
+    r.AddAttrs(slog.String("version", h.version))
     return h.Handler.Handle(ctx, r)
 }
 ```
+
+Your wrapper uses the same shape, but gets its value from `ctx` instead of a field, and adds it only when it's present.
 
 It's the same embedding trick as the `statusRecorder` in stage 5. One catch: `slog.Handler` also has `WithAttrs` and `WithGroup` methods, which return a *new* handler. If you don't override them, calling `logger.With(...)` would return the *inner* handler, and your wrapper would disappear. Override both so they re-wrap the result.
 
@@ -231,7 +243,7 @@ Set the response header *before* calling `next.ServeHTTP`. After the inner handl
 
 **Test:** build `RequestID(RequestLogger(logger)(inner))` with a JSON logger into a buffer. Send a request with `X-Request-ID: abc`. The request log line has `request_id == "abc"`.
 
-Make it pass by adding a `contextHandler` wrapper inside `NewLogger`. Don't change `RequestLogger` itself: it already calls `LogAttrs(r.Context(), ...)`. (If yours calls `Info` without a context, switch it to a `...Context` or `LogAttrs` variant.)
+Make it pass by adding a `contextHandler` wrapper inside `NewLogger`. `RequestLogger` has to pass the request's context when it logs, or the wrapper has nothing to look in. If you used `LogAttrs(r.Context(), ...)` or `InfoContext(r.Context(), ...)` in stage 5, as its Concepts section suggested, there's nothing to change. If you used plain `Info(...)`, switch to one of those variants; that's the only change `RequestLogger` needs.
 
 Then add a second test: a record logged **without** a request ID in the context has **no** `request_id` key.
 
@@ -245,7 +257,11 @@ Finally, check the payoff: the ERROR line logged by `httpapi` for a 500 now incl
 
 ### Step 6 — Restructure `main` into `run`
 
-Rewrite `cmd/todo-api/main.go` along the lines of the `run` pattern above:
+Rewrite `cmd/todo-api/main.go` along the lines of the `run` pattern above.
+
+`main` creates the signal context with `signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)` (and `defer stop()`), then calls `run(ctx, os.Getenv, os.Stdout)`. If `run` returns an error, `main` prints it to stderr and calls `os.Exit(1)`.
+
+`run` then does the following:
 
 1. `LoadConfig(getenv)` returns an error on invalid config.
 2. Build the logger from the config.
