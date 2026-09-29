@@ -195,7 +195,7 @@ A table-driven test. Each case has an env map and the expected `Config`:
 - `LOG_LEVEL=debug` gives `slog.LevelDebug`, and `LOG_LEVEL=WARN` gives `slog.LevelWarn` (case-insensitive)
 - `LOG_FORMAT=json` gives `"json"`
 
-Since `Config` has only comparable fields, you can compare whole structs with `got != tt.want`.
+Since `Config` has only comparable fields, you can compare whole structs with `got != tt.want`. To keep the table short, and to survive new fields being added later (stage 7 adds two), build each expected value from the defaults and change only what the case overrides: write a small `defaultConfig()` helper in the test, then `want := defaultConfig(); want.Port = "9090"`.
 
 ### Step 3 — Invalid config (red → green)
 
@@ -302,7 +302,7 @@ time=... level=INFO msg="shutting down"
 time=... level=INFO msg="server stopped"
 ```
 
-The process exits with status 0 (`echo $?` prints `0`).
+Your program exits with status 0. To see that, run the **built binary**: `go build -o todo-api ./cmd/todo-api && ./todo-api`, press Ctrl-C, then `echo $?` prints `0`. (Under `go run`, the Ctrl-C also reaches the `go` tool itself, which reports `exit status 1` even though your program exited cleanly. That's why the exit code is checked with the built binary.)
 
 > `go run` builds a temporary binary and runs it. Ctrl-C reaches your program as normal. If you want to be sure you're testing exactly what ships, run `go build -o todo-api ./cmd/todo-api && ./todo-api` instead. `/todo-api` is already in `.gitignore`.
 
@@ -318,7 +318,7 @@ LOG_LEVEL=loud go run ./cmd/todo-api
 
 - [ ] Tests, `vet`, and `gofmt` are clean.
 - [ ] Every request log line has a `request_id`, and the response has an `X-Request-Id` header.
-- [ ] Ctrl-C prints the two shutdown lines and exits with status 0.
+- [ ] Ctrl-C prints the two shutdown lines, and the built binary exits with status 0.
 
 ## Commit
 

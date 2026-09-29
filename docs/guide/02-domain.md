@@ -178,13 +178,19 @@ The rules:
 
 `ErrNotFound` isn't used until stage 3, but it belongs to the domain, so declare it here with the others.
 
-Put your tests in `internal/todo/todo_test.go`. Declare a fixed time once at the top of the test file, for example `var t0 = time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)`, and reuse it.
+Put your tests in `internal/todo/todo_test.go`, using `package todo` (the same package, so the tests can see everything). Declare a fixed time once at the top of the test file, for example `var t0 = time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)`, and reuse it.
 
 ### Step 1 — Skeleton so tests can compile
 
 Create `todo.go` with the struct, the constant, the three error variables, and **stub** versions of `NewTodo` (returns `Todo{}, nil`) and `Complete` (does nothing). Give each exported name a doc comment.
 
-Pick clear error messages. Lower-case with no trailing punctuation is the Go convention, for example `"title must not be empty"`.
+Lower-case with no trailing punctuation is the Go convention for error messages. Later stages show these messages in expected outputs, so use exactly:
+
+| Error | Message |
+| --- | --- |
+| `ErrEmptyTitle` | `"title must not be empty"` |
+| `ErrTitleTooLong` | `"title is too long"` |
+| `ErrNotFound` | `"todo not found"` |
 
 ### Step 2 — A valid title (red → green)
 

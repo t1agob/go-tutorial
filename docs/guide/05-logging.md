@@ -200,7 +200,7 @@ If you initialised the recorder's status to 0, this goes red, which is exactly w
 
 Change `httpapi.NewHandler` to take a `*slog.Logger` too.
 
-**This is a deliberate signature change, and your existing handler tests will stop compiling.** Update your `newTestHandler` helper to pass `slog.New(slog.DiscardHandler)`. Because every test builds its handler through that one helper, the fix is a single line. That's what the helper was for.
+**This is a deliberate signature change, and your existing handler tests will stop compiling.** Update your `newTestHandler` helper to pass `slog.New(slog.DiscardHandler)`. Because almost every test builds its handler through that one helper, the fix is mostly one line. That's what the helper was for. The exception is the stage 4 Step 8 test, which calls `httpapi.NewHandler(failingService{})` directly; add the logger argument there too (you're about to change that test anyway).
 
 **Test:** reuse the `failingService` from stage 4 (its `List` returns `errors.New("db exploded")`). Give `NewHandler` a JSON logger writing into a buffer. After `GET /todos`:
 

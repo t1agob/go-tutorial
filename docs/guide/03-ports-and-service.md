@@ -202,11 +202,15 @@ Write a `newFakeRepo()` constructor that initialises the map. Writing to a `nil`
 
 </details>
 
-Also write a small test helper, for example `newTestService(repo todo.Repository) *todo.Service`, that passes a fixed clock (`func() time.Time { return t0 }`) and a fixed ID (`func() string { return "id-1" }`).
+Declare a fixed time in this file too, such as `var t0 = time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)`. The `t0` in `todo_test.go` belongs to `package todo`, so this `package todo_test` file can't see it. (Both packages live in the same directory, but they're separate packages.)
+
+Next, write a **stub** `service.go`: the `Service` struct, `NewService`, and `Create` returning zero values. Without it, nothing in this file compiles.
+
+Then write a small test helper, for example `newTestService(repo todo.Repository) *todo.Service`, that passes a fixed clock (`func() time.Time { return t0 }`) and a fixed ID (`func() string { return "id-1" }`).
 
 #### Step 3 — `Create` (red → green)
 
-Write a stub `service.go` first (the struct, `NewService`, and `Create` returning zero values) so the test compiles. Then add these tests:
+With the stub from Step 2 in place, add these tests:
 
 - **Happy path:** `Create(ctx, "buy milk")` returns a todo with `ID == "id-1"`, `Title == "buy milk"`, and `CreatedAt` equal to `t0`. Afterwards, the fake contains it under `"id-1"`.
 - **Validation error is propagated:** `Create(ctx, "  ")` returns an error that `errors.Is(err, todo.ErrEmptyTitle)`, and **nothing is saved**.

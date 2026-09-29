@@ -113,7 +113,7 @@ SQLite has only a few storage types. Decide explicitly how each field is stored:
 | `CreatedAt time.Time` | `INTEGER NOT NULL` | Unix **nanoseconds** (`t.UnixNano()`) |
 | `CompletedAt *time.Time` | `INTEGER` (nullable) | `NULL` when not completed |
 
-**Why integers for times?** They round-trip exactly (nanosecond precision), and they **sort correctly**, which `List` relies on (`ORDER BY created_at, id`). Text timestamps look friendlier, but RFC 3339 with nanoseconds drops trailing zeros, so `"…:00.5Z"` and `"…:00.123Z"` sort in the wrong order as strings.
+**Why integers for times?** They round-trip exactly (nanosecond precision), and they **sort correctly**, which `List` relies on (`ORDER BY created_at, id`). Text timestamps look friendlier, but RFC 3339 with nanoseconds drops trailing zeros, so the strings have different lengths and don't sort chronologically. For example, `"…T10:00:00.5Z"` sorts **before** `"…T10:00:00Z"` as a string (because `.` < `Z`), even though it's half a second later.
 
 **Nullable columns** need a type that can represent "no value". `database/sql` provides `sql.NullInt64`, `sql.NullString`, `sql.NullTime`, and so on:
 
@@ -295,7 +295,11 @@ Check that `Open` calls `db.SetMaxOpenConns(1)`.
 
 #### Step 6 — Wire `STORAGE` into config and `main` (red → green for config)
 
-Extend `Config` with `Storage` and `DBPath`, and add tests first:
+Extend `Config` with `Storage` and `DBPath`, and add tests first.
+
+> **Heads up:** adding fields with non-empty defaults changes what "the default config" is. If your stage 6 tests compare whole `Config` structs, they now fail (`want` has `Storage:""`, but `got` has `"memory"`). Update your expected defaults in **one** place (the `defaultConfig()` helper, if you followed stage 6's suggestion), and the whole table goes green again.
+
+The new tests:
 
 - the defaults are `Storage == "memory"` and `DBPath == "todo.db"`
 - `STORAGE=sqlite` and `DB_PATH=/tmp/x.db` are read correctly

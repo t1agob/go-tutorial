@@ -274,6 +274,8 @@ To see `gofmt` in action, deliberately mis-indent a line in `greet.go`, run `gof
 
 ### Step 8 — Delete the throwaway package
 
+Before deleting it, try any **Stretch goals** below that you're interested in; they use `greet`. If you'd like a record of the practice work, commit `internal/greet` now (for example `git add go.mod internal/greet && git commit -m "chore: practice package"`).
+
 `greet` was only for practice, and it doesn't belong in the Todo API. Delete it:
 
 ```sh
@@ -287,7 +289,7 @@ rm -r internal/greet
 - [ ] `go.mod` exists with your module path and a `go 1.27.x` line
 - [ ] You watched a compile-error red, an assertion red, and a green
 - [ ] You ran a single subtest with `-run`
-- [ ] `go vet ./...` and `gofmt -l .` both printed nothing
+- [ ] In Step 7 (before the deletion), `go vet ./...` and `gofmt -l .` both printed nothing. (After deletion, `go vet ./...` prints `no packages to vet`; that's expected.)
 - [ ] `internal/greet` has been deleted
 
 ## Commit
@@ -297,7 +299,7 @@ git add go.mod
 git commit -m "chore: initialise Go module"
 ```
 
-If you'd like a record of the practice work, commit `internal/greet` *before* you delete it, then commit the deletion. Both approaches are fine.
+If you committed `greet` in Step 8, this commit also records its deletion. Use `git add -A` so the deletion is included.
 
 ## Stretch goals
 
