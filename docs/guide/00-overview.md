@@ -25,7 +25,7 @@ flowchart LR
     client([curl / browser]) --> httpA
 
     subgraph adapters_in [Driving adapters]
-        httpA[HTTP handlers<br/>internal/adapters/http]
+        httpA[HTTP handlers<br/>internal/adapters/httpapi]
     end
 
     subgraph core [Core — internal/todo]
@@ -83,7 +83,7 @@ go-test/
 │   │   └── service.go          #   use cases               (stage 3)
 │   ├── adapters/
 │   │   ├── memory/             #   in-memory Repository    (stage 3)
-│   │   ├── http/               #   REST handlers           (stage 4)
+│   │   ├── httpapi/            #   REST handlers           (stage 4)
 │   │   └── sqlite/             #   SQLite Repository       (stage 7)
 │   └── platform/               #   logging, config, middleware (stages 5–6)
 └── docs/guide/                 # you are here
