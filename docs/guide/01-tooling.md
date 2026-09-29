@@ -284,7 +284,7 @@ rm -r internal/greet
 
 ## Checkpoint
 
-- [ ] `go.mod` exists with your module path and a `go 1.27` line
+- [ ] `go.mod` exists with your module path and a `go 1.27.x` line
 - [ ] You watched a compile-error red, an assertion red, and a green
 - [ ] You ran a single subtest with `-run`
 - [ ] `go vet ./...` and `gofmt -l .` both printed nothing
