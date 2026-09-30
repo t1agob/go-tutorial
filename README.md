@@ -1,4 +1,4 @@
-# go-test: learn modern Go by building a Todo API
+Learn modern Go by building a Todo API
 
 This is a guided, hands-on path from "I used Go a while ago" to a small but well-structured REST API. **You write all the code.** The guides in [`docs/guide/`](docs/guide/) explain each concept, tell you which test to write next, and give hints when you get stuck.
 
